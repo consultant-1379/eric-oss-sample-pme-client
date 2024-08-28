@@ -1,0 +1,266 @@
+#
+# COPYRIGHT Ericsson 2023
+#
+#
+#
+# The copyright to the computer program(s) herein is the property of
+#
+# Ericsson Inc. The programs may be used and/or copied only with written
+#
+# permission from Ericsson Inc. or in accordance with the terms and
+#
+# conditions stipulated in the agreement/contract under which the
+#
+# program(s) have been supplied.
+#
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "eric-oss-sample-pme-client.fullname" . }}
+  labels:
+  {{- include "eric-oss-sample-pme-client.labels" . | nindent 4 }}
+  annotations:
+  {{- include "eric-oss-sample-pme-client.annotations" . | nindent 4 }}
+spec:
+{{- if not .Values.autoScaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+{{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "eric-oss-sample-pme-client.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  strategy:
+    type: {{ .Values.updateStrategy.type | quote }}
+    {{- if and (eq .Values.updateStrategy.type "RollingUpdate") .Values.updateStrategy.rollingUpdate }}
+    rollingUpdate:
+      maxUnavailable: {{ .Values.updateStrategy.rollingUpdate.maxUnavailable }}
+      maxSurge: {{ .Values.updateStrategy.rollingUpdate.maxSurge }}
+    {{- end }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "eric-oss-sample-pme-client.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/version: {{ include "eric-oss-sample-pme-client.version" . }}
+{{- include "eric-oss-sample-pme-client.directStreamingLabel" . | indent 8 }}
+      annotations:
+{{- include "eric-oss-sample-pme-client.prometheus" . | nindent 8 }}
+{{- include "eric-oss-sample-pme-client.product-info" . | indent 8 }}
+{{- include "eric-oss-sample-pme-client.config-annotations" . | indent 8 }}
+{{- include "eric-oss-sample-pme-client.container-annotations" . | indent 8 }}
+    spec:
+      {{- if include "eric-oss-sample-pme-client.pullSecret" . }}
+      imagePullSecrets:
+        - name: {{ include "eric-oss-sample-pme-client.pullSecret" . | quote}}
+      {{- end }}
+      serviceAccountName: {{ template "eric-oss-sample-pme-client.fullname" . }}
+      securityContext:
+        fsGroup: {{ include "eric-oss-sample-pme-client.fsGroup.coordinated" . }}
+        {{- include "eric-oss-sample-pme-client.seccomp-profile" . | indent 8 }}
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
+        - name: config-volume
+          configMap:
+            defaultMode: 493
+            name: {{ include "eric-oss-sample-pme-client.name" . }}-configmap
+        - name: log-control-configmap-volume
+          configMap:
+            name: {{ template "eric-oss-sample-pme-client.log-control-configmap.name" . }}
+        {{- if .Values.tls.enabled }}
+        - name: truststore-certificates
+          secret:
+            secretName: {{ .Values.tls.platformCaCert.secretName }}
+        {{- end }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "eric-oss-sample-pme-client.fullname" . }}
+      containers:
+        - name: eric-oss-sample-pme-client
+          image: {{ template "eric-oss-sample-pme-client.mainImagePath" . }}
+          imagePullPolicy: {{ template "eric-oss-sample-pme-client.registryImagePullPolicy" . }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - all
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp-volume
+            - name: config-volume
+              mountPath: /config
+            - name: log-control-configmap-volume
+              mountPath: /logcontrol
+            - name: data
+              mountPath: /data
+            {{- if .Values.tls.enabled }}
+            - name: truststore-certificates
+              mountPath: {{ .Values.tls.platformCaCert.mountPath | quote }}
+              readOnly: true
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+          {{- if (index .Values "probes" "eric-oss-sample-pme-client" "livenessProbe" "initialDelaySeconds") }}
+            {{ print "initialDelaySeconds: " (index .Values "probes" "eric-oss-sample-pme-client" "livenessProbe" "initialDelaySeconds") }}
+          {{- end }}
+          {{- if (index .Values "probes" "eric-oss-sample-pme-client" "livenessProbe" "failureThreshold") }}
+            {{ print "failureThreshold: " (index .Values "probes" "eric-oss-sample-pme-client" "livenessProbe" "failureThreshold") }}
+          {{- end }}
+          {{- if (index .Values "probes" "eric-oss-sample-pme-client" "livenessProbe" "periodSeconds") }}
+            {{ print "periodSeconds: " (index .Values "probes" "eric-oss-sample-pme-client" "livenessProbe" "periodSeconds") }}
+          {{- end }}
+          {{- if (index .Values "probes" "eric-oss-sample-pme-client" "livenessProbe" "timeoutSeconds") }}
+            {{ print "timeoutSeconds: " (index .Values "probes" "eric-oss-sample-pme-client" "livenessProbe" "timeoutSeconds") }}
+          {{- end }}
+            httpGet:
+              path: /actuator/health
+              port: http
+          readinessProbe:
+          {{- if (index .Values "probes" "eric-oss-sample-pme-client" "readinessProbe" "initialDelaySeconds") }}
+            {{ print "initialDelaySeconds: " (index .Values "probes" "eric-oss-sample-pme-client" "readinessProbe" "initialDelaySeconds") }}
+          {{- end }}
+          {{- if (index .Values "probes" "eric-oss-sample-pme-client" "readinessProbe" "failureThreshold") }}
+            {{ print "failureThreshold: " (index .Values "probes" "eric-oss-sample-pme-client" "readinessProbe" "failureThreshold") }}
+          {{- end }}
+          {{- if (index .Values "probes" "eric-oss-sample-pme-client" "readinessProbe" "periodSeconds") }}
+            {{ print "periodSeconds: " (index .Values "probes" "eric-oss-sample-pme-client" "readinessProbe" "periodSeconds") }}
+          {{- end }}
+          {{- if (index .Values "probes" "eric-oss-sample-pme-client" "readinessProbe" "timeoutSeconds") }}
+            {{ print "timeoutSeconds: " (index .Values "probes" "eric-oss-sample-pme-client" "readinessProbe" "timeoutSeconds") }}
+          {{- end }}
+            httpGet:
+              path: /actuator/health
+              port: http
+          env:
+          - name: KAFKA_BOOTSTRAP_SERVER
+            value: {{ (index .Values "kafka" "bootstrapServer" "path") | quote }}
+          - name: KAFKA_BOOTSTRAP_PORT
+            value: {{ (index .Values "kafka" "bootstrapServer" "port") | quote }}
+            {{- if .Values.kafka.consumerGroup }}
+          - name: KAFKA_TOPICS_CONSUMER_GROUP_ID
+            value: {{ .Values.kafka.consumerGroup | quote}}
+            {{- end }}
+          - name: PME_URL
+            value: {{ include "eric-oss-sample-pme-client.pmeUrl" . | quote }}
+          - name: PME_BASE_PATH
+            value: {{ .Values.pme.basePath | quote }}
+          - name: IAM_URL
+            value: {{ include "eric-oss-sample-pme-client.iamUrl" . | quote}}
+          - name: IAM_BASE_PATH
+            value: {{ .Values.iam.basePath | quote }}
+          - name: IAM_CLIENT_ID
+            value: {{ .Values.clientId | quote }}
+          - name: IAM_CLIENT_SECRET
+            value: {{ .Values.clientSecret | quote }}
+          - name: IAM_TOKEN_ENDPOINT_PATH
+            value: {{ .Values.iam.tokenEndpointPath | quote }}
+          - name: SERVICE_ID
+            value: {{ include "eric-oss-sample-pme-client.serviceId" . | quote}}
+          - name: JAVA_OPTS
+            value: {{ include "eric-oss-sample-pme-client.jvmHeapSettings" . }}
+          - name: TLS_JAVA_OPTS
+            value: {{ include "eric-oss-sample-pme-client.clientProtocol" . }}
+          - name: TLS_ENABLED
+            value: {{ .Values.tls.enabled | quote }}
+          - name: TZ
+            value: {{ template "eric-oss-sample-pme-client.timezone" . }}
+          - name: CLIENT_PROTOCOL
+            value: {{ .Values.tls.clientProtocol | quote }}
+          - name: TRUSTSTORE_CERTIFICATE_MOUNT_PATH
+            value: {{ .Values.tls.platformCaCert.mountPath | quote }}
+          - name: TRUSTSTORE_PASS
+            value: {{ default (randAlphaNum 16) .Values.tls.platformCaCert.truststorePass | quote }}
+          - name: LOG_CTRL_FILE
+            value: "/logcontrol/logcontrol.json"
+      {{- if .Values.global }}
+        {{- if .Values.global.security }}
+          {{- if .Values.global.security.tls }}
+            {{- if .Values.global.security.tls.enabled }}
+          - name: CONNECT_MODE
+            value: "tls"
+            {{- if (eq .Values.service.endpoints.chassisapi.tls.enforced "required") }}
+          - name: TLS_MODE
+            value: "only_tls"
+            {{- if (eq .Values.service.endpoints.chassisapi.tls.verifyClientCertificate "required") }}
+          - name: TLS_CA
+            value: "ca_path"
+            {{- end }}
+            {{- end }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
+      {{- include "eric-oss-sample-pme-client.loggingEnv" . | indent 10 }}
+          resources:
+            requests:
+            {{- if (index .Values "resources" "eric-oss-sample-pme-client" "requests" "cpu") }}
+              cpu: {{ (index .Values "resources" "eric-oss-sample-pme-client" "requests" "cpu" | quote) }}
+            {{- end }}
+            {{- if (index .Values "resources" "eric-oss-sample-pme-client" "requests" "memory") }}
+              memory: {{ (index .Values "resources" "eric-oss-sample-pme-client" "requests" "memory" | quote) }}
+            {{- end }}
+            {{- if (index .Values "resources" "eric-oss-sample-pme-client" "requests" "ephemeral-storage") }}
+            {{ println "  ephemeral-storage:" (index .Values "resources" "eric-oss-sample-pme-client" "requests" "ephemeral-storage" | quote) }}
+            {{- end }}
+            limits:
+            {{- if (index .Values "resources" "eric-oss-sample-pme-client" "limits" "cpu") }}
+              cpu: {{ (index .Values "resources" "eric-oss-sample-pme-client" "limits" "cpu" | quote) }}
+            {{- end }}
+            {{- if (index .Values "resources" "eric-oss-sample-pme-client" "limits" "memory") }}
+              memory: {{ (index .Values "resources" "eric-oss-sample-pme-client" "limits" "memory" | quote) }}
+            {{- end }}
+            {{- if (index .Values "resources" "eric-oss-sample-pme-client" "limits" "ephemeral-storage") }}
+            {{ println "  ephemeral-storage:" (index .Values "resources" "eric-oss-sample-pme-client" "limits" "ephemeral-storage" | quote) }}
+            {{- end }}
+      nodeSelector: {{ include "eric-oss-sample-pme-client.nodeSelector" . | nindent 6 -}}
+
+      {{- if .Values.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds:
+        {{- include "eric-oss-sample-pme-client.terminationGracePeriodSeconds" . | nindent 8 }}
+      {{- end }}
+
+      {{- if .Values.tolerations }}
+      tolerations:
+        {{- include "eric-oss-sample-pme-client.tolerations" . | nindent 8 }}
+      {{- end }}
+
+      {{- if (index .Values "podPriority" "eric-oss-sample-pme-client" "priorityClassName") }}
+      priorityClassName: {{ (index .Values "podPriority" "eric-oss-sample-pme-client" "priorityClassName") }}
+      {{- end }}
+
+      {{- with .Values.topologySpreadConstraints.deployment }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 6 }}
+      {{- end }}
+      {{- if eq .Values.affinity.podAntiAffinity "hard" }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - {{ include "eric-oss-sample-pme-client.name" . }}
+            topologyKey: "kubernetes.io/hostname"
+      {{- else if eq .Values.affinity.podAntiAffinity  "soft" }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - {{ include "eric-oss-sample-pme-client.name" . }}
+              topologyKey: "kubernetes.io/hostname"
+      {{- end }}

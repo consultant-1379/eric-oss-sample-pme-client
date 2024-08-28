@@ -1,0 +1,120 @@
+#
+# COPYRIGHT Ericsson 2023
+#
+#
+#
+# The copyright to the computer program(s) herein is the property of
+#
+# Ericsson Inc. The programs may be used and/or copied only with written
+#
+# permission from Ericsson Inc. or in accordance with the terms and
+#
+# conditions stipulated in the agreement/contract under which the
+#
+# program(s) have been supplied.
+#
+
+#Metrics related configurations
+management.endpoint.metrics.enabled: "true"
+management.endpoints.web.exposure.include: "*"
+management.endpoint.prometheus.enabled: "true"
+management.metrics.export.prometheus.enabled: "true"
+management.metrics.web.server.auto-time-requests: "true"
+management.metrics.web.client.request.autotime.enabled: "true"
+management.info.env.enabled: "true"
+management.endpoint.health.group.startup:
+  include: healthCheck
+  show-details: "always"
+  status:
+    order: out-of-service,running,started,up
+    http-mapping:
+      out-of-service: 503
+      running: 200
+      started: 200
+
+#opentracing.jaeger.enabled: "true"
+
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER:eric-oss-dmm-kf-op-sz-kafka-bootstrap}:${KAFKA_BOOTSTRAP_PORT:9092}
+    consumer:
+      group-id: ${KAFKA_TOPICS_CONSUMER_GROUP_ID:pme-client-consumer-group}
+      properties:
+        allow.auto.create.topics: false
+    admin:
+      auto-create: false
+    topics:
+      monitoringObjectTopic: ${MONITORING_OBJECT_TOPIC:epme-monitoring-objects}
+      verdictTopic: ${VERDICT_TOPIC:epme-verdicts}
+  task.scheduling.pool.size: 2
+  datasource:
+    url: jdbc:h2:file:/data/mydb
+#    url: jdbc:h2:mem:mydb
+    username: admin
+    password: admin
+    driverClassName: org.h2.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+  h2:
+    console.enabled: true
+
+endpoints.health.sensitive: "false"
+info.app.name: '@name@'
+info.app.description: Microservice chassis app
+info.app.version: '@version@'
+info.app.legal: "COPYRIGHT Ericsson 2023 -
+ The copyright to the computer program(s) herein is the property of
+ Ericsson Inc. The programs may be used and/or copied only with written
+ permission from Ericsson Inc. or in accordance with the terms and
+ conditions stipulated in the agreement/contract under which the
+ program(s) have been supplied."
+
+#See more details about pattern layout: https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/PatternLayout.html
+#See more details about logging.pattern.level : https://docs.spring.io/spring-boot/docs/2.5.2/reference/html/features.html#features.logging.custom-log-configuration
+#logging.pattern.level: "%5p [%X{X-B3-TraceId:-},%X{X-B3-SpanId:-},%X{X-Span-Export:-}][%X{userName}]"
+
+#Set the stubrunner credentials:
+#stubrunner.username: <LAN SIGNUM ID>
+#stubrunner.password: <LAN encripted PWD or JFrog API Key>
+stubrunner.username: ${SELI_ARTIFACTORY_REPO_USER}
+stubrunner.password: ${SELI_ARTIFACTORY_REPO_PASS}
+
+startup.initialDelayInSeconds: 10
+
+gateway:
+  scheme: ${GATEWAY_SCHEME:https}
+  host: ${GATEWAY_HOST:localhost}
+  port: ${GATEWAY_PORT:}
+  services:
+    iam:
+      url: ${IAM_URL:}
+      basePath: ${IAM_BASE_PATH:}
+      clientId: ${IAM_CLIENT_ID:}
+      clientSecret: ${IAM_CLIENT_SECRET:}
+      tokenEndpointPath: ${IAM_TOKEN_ENDPOINT_PATH:}
+    pme:
+      url: ${PME_URL:}
+      host: ${PME_HOST:}
+      basePath: ${PME_BASE_PATH:/pme/v1alpha2}
+
+tls:
+  enabled: ${TLS_ENABLED:true}
+  clientProtocol: ${CLIENT_PROTOCOL:TLSv1.3}
+  truststore:
+    certFilePath: ${TRUSTSTORE_CERTIFICATE_MOUNT_PATH:}
+    appStorePath: /tmp/truststore.jks
+    appStorePass: ${TRUST_STORE_PASS:}
+
+logging:
+  config: ${LOGBACK_CONFIG_FILE:classpath:logback-json.xml}
+  endpoints:
+    exclude: /actuator/health, /actuator/prometheus, /ping, /metrics, /actuator/id-(.*)
+  logcontrol-file: ${LOG_CTRL_FILE:/logcontrol/logcontrol.json}
+
+# We are providing our own watcher, this disables the watcher in eric-common-logging
+ericsson:
+  logging:
+    runtime-level-control:
+      enabled: true

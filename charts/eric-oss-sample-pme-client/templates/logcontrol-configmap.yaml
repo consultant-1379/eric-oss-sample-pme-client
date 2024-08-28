@@ -1,0 +1,32 @@
+#
+# COPYRIGHT Ericsson 2023
+#
+#
+#
+# The copyright to the computer program(s) herein is the property of
+#
+# Ericsson Inc. The programs may be used and/or copied only with written
+#
+# permission from Ericsson Inc. or in accordance with the terms and
+#
+# conditions stipulated in the agreement/contract under which the
+#
+# program(s) have been supplied.
+#
+
+apiVersion: v1
+data:
+  logcontrol.json: |-
+    [
+      {
+        "container": "eric-oss-sample-pme-client",
+        "severity": {{ .Values.logging.logLevel | quote}}
+      }
+    ]
+kind: ConfigMap
+metadata:
+  name: {{ template "eric-oss-sample-pme-client.log-control-configmap.name" . }}
+  labels:
+    {{- include "eric-oss-sample-pme-client.labels" . | nindent 4 }}
+  annotations:
+    {{- include "eric-oss-sample-pme-client.annotations" . | nindent 4 }}

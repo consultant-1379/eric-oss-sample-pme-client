@@ -1,0 +1,19 @@
+/* style goes here */
+:host {
+  display: block;
+}
+
+.app-table-container {
+  height: 80vh;
+}
+
+.table-row-count {
+  /* Use a flexbox layout */
+  display: flex;
+
+  /* Make a horizontal flexbox (the default) */
+  flex-direction: row;
+
+  /* The important part: vertically center the items */
+  align-items: center;
+}

@@ -1,0 +1,19 @@
+:host {
+  display: block;
+  font-size: 14px;
+  padding: var(--space-xl);
+}
+
+.app-header {
+  width: 100%;
+  display: inline-block;
+  font-size: 16px;
+}
+
+.create-session-button {
+  float: right;
+}
+
+.app-table-container {
+  height: 83vh;
+}

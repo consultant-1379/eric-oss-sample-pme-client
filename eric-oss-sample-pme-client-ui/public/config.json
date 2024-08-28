@@ -1,0 +1,19 @@
+{
+  "apps": [
+    {
+      "name": "eric-oss-sample-pme-client-app",
+      "module": "eric-oss-sample-pme-client-app",
+      "displayName": "Sample EPME Client",
+      "type": "euisdk",
+      "route": "eric-oss-sample-pme-client-app",
+      "descriptionShort": "Sample EPME Client Subtitle"
+    }
+  ],
+  "components": [
+    {
+      "name": "fdn-table",
+      "module": "fdn-table",
+      "version": "1.0.0"
+    }
+  ]
+}

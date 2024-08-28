@@ -1,0 +1,10 @@
+{
+  "modules": [
+    {
+      "name": "eric-oss-sample-pme-client-app",
+      "version": "1.0.0",
+      "path": "/src/apps/eric-oss-sample-pme-client-app",
+      "main": "eric-oss-sample-pme-client-app.js"
+    }
+  ]
+}

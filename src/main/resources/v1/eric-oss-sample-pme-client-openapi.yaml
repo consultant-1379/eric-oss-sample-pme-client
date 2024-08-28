@@ -1,0 +1,265 @@
+#
+# COPYRIGHT Ericsson 2023
+#
+#
+#
+# The copyright to the computer program(s) herein is the property of
+#
+# Ericsson Inc. The programs may be used and/or copied only with written
+#
+# permission from Ericsson Inc. or in accordance with the terms and
+#
+# conditions stipulated in the agreement/contract under which the
+#
+# program(s) have been supplied.
+#
+
+openapi: 3.0.2
+
+servers:
+  - url : http://localhost/pme-client/v1
+
+info:
+  x-api-id: 9a23a7fc-5aa5-469f-a234-9b47f3c3955e
+  x-audience: external-partner
+  description: "Performance Monitoring provides the capability to monitor KPIs in the
+  network and determine if they fall below a certain threshold . The KPIs and the 
+  threshold information is defined in a configuration, while a session allows the 
+  client to control how long these KPIs are monitored for.  A configuration can be 
+  shared among several sessions."
+  version: 0.0.2
+  title: Performance Monitoring Enabler Client API
+  license:
+    name: COPYRIGHT Ericsson 2023
+    url: https://www.ericsson.com/en/legal
+  termsOfService: https://www.ericsson.com/en/legal
+  contact:
+    email: pdlteamvad@pdl.internal.ericsson.com
+tags:
+  - name: sessions-client
+    description: Provides the capability to define a monitoring session.
+paths:
+  /sessions:
+    post:
+      tags:
+        - sessions-client
+      summary: Create an PME Monitoring Session
+      description: Creates an PME Monitoring Session for the given rApp Client ID
+      operationId: createExecution
+      parameters:
+        - $ref: '#/components/parameters/acceptInHeader'
+        - $ref: '#/components/parameters/contentTypeInHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Execution'
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionResponse"
+        "400":
+          $ref: "#/components/responses/400"
+        "409":
+          $ref: "#/components/responses/409"
+        "503":
+          $ref: "#/components/responses/503"
+        default:
+          $ref: "#/components/responses/500"
+  /verdicts:
+    get:
+      tags:
+        - verdicts-client
+      summary: Read PME Verdicts
+      operationId: getVerdicts
+      parameters:
+        - $ref: '#/components/parameters/acceptInHeader'
+        - $ref: '#/components/parameters/contentTypeInHeader'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Verdict"
+
+components:
+  # Common Params
+  parameters:
+    clientId:
+      name: clientId
+      in: query
+      description: ID of the Client who owns the session
+      required: true
+      schema:
+        type: string
+        minLength: 4
+        maxLength: 64
+        pattern: "^[\\w-]+$"
+    acceptInHeader:
+      name: Accept
+      in: header
+      required: true
+      schema:
+        type: string
+        example: application/json
+        default: application/json
+    contentTypeInHeader:
+      name: Content-Type
+      in: header
+      required: true
+      schema:
+        type: string
+        example: application/json
+        default: application/json
+
+  # Common error responses
+  responses:
+    "400":
+      description: Bad Request
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ErrorDetails"
+    "404":
+      description: Not Found
+    "409":
+      description: Conflict
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ErrorDetails"
+    "503":
+      description: Service Unavailable
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ErrorDetails"
+    "500":
+      description: Internal Server Error
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ErrorDetails"
+  schemas:
+    Execution:
+      type: object
+      required:
+        - name
+        - pmeConfigId
+        - fdns
+      properties:
+        name:
+          type: string
+          pattern: "^[\\w-_]+$"
+        duration:
+          type: integer
+          maximum: 24
+          minimum: 1
+          default: 18
+          format: int32
+        pmeConfigId:
+          description: The id of the configuration to be used by this session.
+          type: string
+        fdns:
+          type: array
+          items:
+            type: string
+    ExecutionResponse:
+      type: object
+      required:
+        - name
+        - pmeConfigId
+        - sessionId
+        - fdns
+      properties:
+        name:
+          type: string
+          pattern: "^[\\w-_]+$"
+        duration:
+          type: integer
+          maximum: 24
+          minimum: 1
+          default: 18
+          format: int32
+        pmeConfigId:
+          description: The id of the configuration to be used by this session.
+          type: string
+        sessionId:
+          type: string
+        fdns:
+          type: array
+          items:
+            type: string
+    Verdict:
+      type: object
+      required:
+        - pmeSessionId
+        - fdn
+        - timestamp
+        - kpiVerdicts
+      properties:
+        pmeSessionId:
+          type: string
+        fdn:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: string
+        kpiVerdicts:
+          type: array
+          items:
+            $ref: '#/components/schemas/KpiVerdict'
+    KpiVerdict:
+      type: object
+      required:
+        - kpiName
+        - kpiType
+        - verdict
+        - thresholdType
+      properties:
+        kpiName:
+          type: string
+        kpiType:
+          type: string
+        verdict:
+          $ref: '#/components/schemas/VerdictResult'
+        thresholdType:
+          type: string
+          enum:
+            - FIXED
+        kpiValue:
+          type: number
+          format: double
+          nullable: true
+        thresholdValue:
+          type: number
+          format: double
+          nullable: true
+    VerdictResult:
+      type: string
+      enum:
+        - DEGRADED
+        - NOT_DEGRADED
+        - NOT_POSSIBLE
+    ErrorDetails:
+      description: Provides additional information in an error response.
+      type: object
+      properties:
+        title:
+          type: string
+          description: Short, human-readable summary of the problem.
+        status:
+          type: integer
+          description: HTTP status code.
+        detail:
+          type: string
+          description: Optional human-readable explanation of the problem. if present, ought to focus on helping the client correct the problem, rather than giving debugging information.

@@ -1,0 +1,27 @@
+#
+# COPYRIGHT Ericsson 2023
+#
+#
+#
+# The copyright to the computer program(s) herein is the property of
+#
+# Ericsson Inc. The programs may be used and/or copied only with written
+#
+# permission from Ericsson Inc. or in accordance with the terms and
+#
+# conditions stipulated in the agreement/contract under which the
+#
+# program(s) have been supplied.
+#
+
+Description of an APP:
+  APPName: eric-oss-sample-pme-client
+  APPVersion: 1.0.2
+  APPType: rApp
+APPComponent:
+  NameofComponent: eric-oss-sample-pme-client
+  Version: 1.0.2
+  Path: OtherDefinitions/ASD/eric-oss-sample-pme-clientASD.yaml
+  ArtefactType: Microservice
+APPRoles:
+  - Name: RouteAdmin

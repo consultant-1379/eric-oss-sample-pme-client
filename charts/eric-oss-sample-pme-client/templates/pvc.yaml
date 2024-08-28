@@ -1,0 +1,15 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ include "eric-oss-sample-pme-client.fullname" . }}
+  labels:
+  {{- include "eric-oss-sample-pme-client.labels" . | nindent 4 }}
+  annotations:
+  {{- include "eric-oss-sample-pme-client.annotations" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: network-block
